@@ -11,7 +11,7 @@ class Platformer extends Phaser.Scene {
         this.JUMP_VELOCITY = -200;
         this.WALL_JUMP_VELOCITY =  -this.JUMP_VELOCITY;
         this.PARTICLE_VELOCITY = 50;
-        this.SCALE = 5.0;
+        this.SCALE = 3.0;
         this.BREEZE_STRENGTH = 3000;
     }
 
