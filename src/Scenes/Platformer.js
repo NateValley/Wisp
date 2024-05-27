@@ -113,7 +113,7 @@ class Platformer extends Phaser.Scene {
     // PLAYER AVATAR
 
         // SET UP
-        my.sprite.player = this.physics.add.sprite(2000, 256, "wisp_idle");
+        my.sprite.player = this.physics.add.sprite(120, 256, "wisp_idle");
         my.sprite.player.setCollideWorldBounds(true);
         my.sprite.player.body.setSize(12, 12);
 
