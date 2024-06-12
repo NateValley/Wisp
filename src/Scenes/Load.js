@@ -27,7 +27,8 @@ class Load extends Phaser.Scene {
         // Load tilemap information
         this.load.image("wisp_tilemap_tiles", "kenney_1-bit-platformer-pack/Tilemap/monochrome_tilemap_packed.png");
         this.load.image("wisp_transparent_tiles", "kenney_1-bit-platformer-pack/Tilemap/monochrome_tilemap_transparent_packed.png");                         // Packed tilemap
-        this.load.tilemapTiledJSON("wisp_level", "wisp-level.tmj");   // Tilemap in JSON
+        this.load.tilemapTiledJSON("wisp_tutorial", "wisp-tutorial.tmj");   // Tilemap in JSON
+        this.load.tilemapTiledJSON("wisp_level1", "wisp-level1.tmj");   // Tilemap in JSON
 
 
         // Load UI
@@ -50,6 +51,23 @@ class Load extends Phaser.Scene {
             frameHeight: 16
         });
 
+
+        // Load Audio
+            //movement
+        this.load.audio("jumpSFX", "kenney_digital-audio/Audio/phaseJump3.ogg");
+        this.load.audio("walkSFX", "kenney_impact-sounds/Audio/footstep_concrete_000.ogg");
+        this.load.audio("slideSFX", "kenney_rpg-audio/Audio/cloth3.ogg");
+
+            //ui or menu sounds
+        this.load.audio("continueSFX", "kenney_digital-audio/Audio/pepSound2.ogg");
+        this.load.audio("finishSFX", "kenney_digital-audio/Audio/threeTone2.ogg");
+        this.load.audio("restartSFX", "kenney_digital-audio/Audio/twoTone1.ogg");
+        this.load.audio("collectSFX", "kenney_digital-audio/Audio/powerUp2.ogg");
+        this.load.audio("checkSFX", "kenney_digital-audio/Audio/powerUp7.ogg");
+        // bgm https://freesound.org/people/DominikBraun/sounds/483502/
+        this.load.audio("bgMusic", "483502__dominikbraun__let-me-see-ya-bounce-8-bit-music.mp3");
+        
+        
         // Oooh, fancy. A multi atlas is a texture atlas which has the textures spread
         // across multiple png files, so as to keep their size small for use with
         // lower resource devices (like mobile phones).
@@ -104,7 +122,7 @@ class Load extends Phaser.Scene {
         });
 
          // ...and pass to the next Scene
-          this.scene.start("platformerScene");
+          this.scene.start("titleScene");
     }
 
     // Never get here since a new scene is started in create()

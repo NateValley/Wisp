@@ -1,6 +1,6 @@
-class Platformer extends Phaser.Scene {
+class TutorialLv extends Phaser.Scene {
     constructor() {
-        super("platformerScene");
+        super("tutorialScene");
     }
 
     init() {
@@ -15,12 +15,13 @@ class Platformer extends Phaser.Scene {
         this.PARTICLE_VELOCITY = 50;
         this.SCALE = 3.8;
         this.BREEZE_STRENGTH = 2000;
+        this.timer = 0;
     }
 
     create() {
         // Create a new tilemap game object which uses 18x18 pixel tiles, and is
         // 45 tiles wide and 25 tiles tall.
-        this.map = this.add.tilemap("wisp_level", 16, 16, 96, 18);
+        this.map = this.add.tilemap("wisp_tutorial", 16, 16, 96, 18);
 
         // Add a tileset to the map
         // First parameter: name we gave the tileset in Tiled
@@ -29,15 +30,25 @@ class Platformer extends Phaser.Scene {
         this.transparent = this.map.addTilesetImage("wisp_tilemap_transparent_packed", "wisp_transparent_tiles");
         this.UIsheet = this.map.addTilesetImage("tilemap_white_packed", "wisp_UI");
     
-    
+        
     // LAYERS
 
 
         // BACKGROUND LAYER
-        this.backLayer = this.map.createLayer("Background", this.tileset, 0, 0);
+        // this.backLayer = this.map.createLayer("Back  ground", this.tileset, 0, 0);
 
         // UI LAYER
-        this.UILayer = this.map.createLayer("UI", this.UIsheet, 0, 0);
+        this.SkipLayer = this.map.createLayer("Skip", this.UIsheet, 0, 0);
+        this.Controls1Layer = this.map.createLayer("Controls1", this.UIsheet, 0, 0);
+
+        this.Controls2Layer = this.map.createLayer("Controls2", this.UIsheet, 0, 0);
+        this.Controls2Layer.setVisible(false);
+
+        this.Controls3Layer = this.map.createLayer("Controls3", this.UIsheet, 0, 0);
+        this.Controls3Layer.setVisible(false);
+        
+        this.Controls4Layer = this.map.createLayer("Controls4", this.UIsheet, 0, 0);
+        this.Controls4Layer.setVisible(false);
         
         // WALL LAYER
         this.wallLayer = this.map.createLayer("Walls", this.tileset, 0, 0);
@@ -47,6 +58,13 @@ class Platformer extends Phaser.Scene {
             collides: true
         });
 
+        // BUTTONS LAYER
+        this.buttonsLayer = this.map.createLayer("Buttons", this.transparent, 0, 0);
+
+        // Make it collidable
+        this.buttonsLayer.setCollisionByProperty({
+            collides: true
+        });
 
         // PLATFORMS LAYER
         this.platformLayer = this.map.createLayer("Platforms", this.tileset, 0, 0);
@@ -56,34 +74,19 @@ class Platformer extends Phaser.Scene {
             collides: true
         });
 
-
-        // SPIKES LAYER
-        this.spikesLayer = this.map.createLayer("Spikes", this.transparent, 0, 0);
-
-        // Make it collidable
-        this.spikesLayer.setCollisionByProperty({
-            collides: true
-        });
-
-
-        // FANS LAYER
-        this.fanLayer = this.map.createLayer("Fans", this.tileset, 0, 0);
+        // END LAYER
+        this.endLayer = this.map.createLayer("End", this.transparent, 0, 0);
+        this.endLayer.setVisible(false);
 
         // Make it collidable
-        this.fanLayer.setCollisionByProperty({
-            collides: true
+        this.endLayer.setCollisionByProperty({
+            ends: true
         });
-
 
         // BREEZE LAYER
         this.breezeLayer = this.map.createLayer("Breeze", this.transparent, 0, 0);
         this.breezeLayer.setVisible(false);
 
-        // CHAINS LAYER
-        this.chainsLayer = this.map.createLayer("Chains", this.transparent, 0, 0);
-        this.chainsLayer.setCollisionByProperty({
-            isClimbable: true
-        });
 
 
     // OBJECT LAYERS
@@ -97,23 +100,47 @@ class Platformer extends Phaser.Scene {
 
         this.physics.world.enable(this.diamonds, Phaser.Physics.Arcade.STATIC_BODY);
         this.diamondGroup = this.add.group(this.diamonds);
-        
 
-        // CHECKPOINTS
-        this.checkpoints = this.map.createFromObjects("Checkpoints", {
-            name: "checkpoint",
+        // SIGNS (TUTORIAL)
+        this.signs = this.map.createFromObjects("Signs", {
+            name: "sign",
             key: "transparent_sheet",
-            frame: 248
+            frame: 77
         });
 
-        this.physics.world.enable(this.checkpoints, Phaser.Physics.Arcade.STATIC_BODY);
-        this.checkpointGroup = this.add.group(this.checkpoints);
+        this.physics.world.enable(this.signs, Phaser.Physics.Arcade.STATIC_BODY);
+        this.signGroup = this.add.group(this.signs);
 
+
+        this.currentSign = null;
+
+            // SIGN TEXTS
+        this.jumpControlsText = this.add.text(66, 166, 'to jump, press:\n\n\t\t\t\tor', {
+            fontFamily: "'Micro 5'",
+            fontSize: 15,
+            resolution: 16,
+        });
+        this.jumpControlsText.visible = false;
+        
+        this.grabControlsText = this.add.text(302, 85, 'to grab onto\na wall, hold down:\n\t\t\t\t\t\t\t\t\tor\nin the direction\nof the wall', {
+            fontFamily: "'Micro 5'",
+            fontSize: 15,
+            resolution: 16,
+        });
+        this.grabControlsText.visible = false;
+        
+        this.resetControlsText = this.add.text(270, 14, 'to reset the current level, press:', {
+            fontFamily: "'Micro 5'",
+            fontSize: 15,
+            resolution: 16,
+        });
+        this.resetControlsText.visible = false;
+        
 
     // PLAYER AVATAR
 
         // SET UP
-        my.sprite.player = this.physics.add.sprite(120, 256, "wisp_idle");
+        my.sprite.player = this.physics.add.sprite(15, 235, "wisp_idle");
         my.sprite.player.setCollideWorldBounds(true);
         my.sprite.player.body.setSize(12, 12);
 
@@ -122,6 +149,21 @@ class Platformer extends Phaser.Scene {
 
             // WALLS
         this.physics.add.collider(my.sprite.player, this.wallLayer);
+
+            // BUTTONS
+        let titleOn = false;
+        this.physics.add.collider(
+            my.sprite.player,
+            this.buttonsLayer,
+            null,
+            (player, button) =>
+            {
+                if (!this.titleOn)
+                {
+                    console.log("real")
+                    this.titleActivate(button);
+                }
+            });
 
             // PLATFORMS
         this.physics.add.collider(
@@ -133,9 +175,18 @@ class Platformer extends Phaser.Scene {
                 return player.body.velocity.y >= 0;
             });
 
-            // FANS
-        this.physics.add.collider(my.sprite.player, this.fanLayer);
-
+            // END
+        this.physics.add.collider(
+            my.sprite.player,
+            this.endLayer,
+            null,
+            (player, tile) =>
+            {
+                // consider making an endOfLv screen?
+                console.log("end");
+                this.sound.play("finishSFX");
+                this.scene.start("platformerLv1Scene");
+            });
 
             // BREEZE
         this.breezeDirection = this.getBreezeDirection();
@@ -144,18 +195,17 @@ class Platformer extends Phaser.Scene {
 
             // DIAMONDS
         this.physics.add.overlap(my.sprite.player, this.diamondGroup, (obj1, obj2) => {
+            this.sound.play("collectSFX");
             obj2.destroy();
         });
 
-
-            // CHECKPOINTS
-        this.physics.add.overlap(my.sprite.player, this.checkpointGroup, (obj1, obj2) => {
-            this.checkpointActivate(obj2);
+            // SIGNS
+        let onSign = false;
+        
+        this.physics.add.overlap(my.sprite.player, this.signGroup, (obj1, obj2) => {
+            this.signActivate(obj2)
+            this.onSign = true;
         });
-
-
-            // CHAINS
-            this.physics.add.collider(my.sprite.player, this.chainsLayer);
 
         
     // PLAYER VARIABLES
@@ -172,36 +222,22 @@ class Platformer extends Phaser.Scene {
         cursors = this.input.keyboard.createCursorKeys();
 
         this.rKey = this.input.keyboard.addKey('R');
+        this.sKey = this.input.keyboard.addKey('S');
         this.spaceKey = this.input.keyboard.addKey('SPACE');
+        this.upKey = this.input.keyboard.addKey('UP');
 
-        // debug key listener (assigned to D key)
         this.physics.world.drawDebug = false;
-        // this.input.keyboard.on('keydown-D', () => {
-        //     this.physics.world.drawDebug = this.physics.world.drawDebug ? false : true
-        //     this.physics.world.debugGraphic.clear()
-        // }, this);
 
-        // TODO: Add movement vfx here
         my.vfx.walking = this.add.particles(0, 0, 'particle_1', {
-            frame: ['particle_1', 'particle_2'],
-            // TODO: Try: add random: true
             random: true,
             scale: {start: 0.3, end: 0.1},
-            // TODO: Try: maxAliveParticles: 8,
             maxAliveParticles: 8,
             lifespan: 200,
-            // TODO: Try: gravityY: -400,
             gravityY: -200,
             alpha: {start: 1, end: 0.1}, 
         });
 
         my.vfx.walking.stop();
-
-        // CHECKPOINT VARIABLE
-        this.currentCheckpoint = null;
-        
-        // CHAIN TOUCHING
-        this.onChain = false;
 
     // CAMERA SETTINGS
         this.cameras.main.setBounds(0, 0, this.map.widthInPixels, this.map.heightInPixels);
@@ -209,64 +245,44 @@ class Platformer extends Phaser.Scene {
         this.cameras.main.centerOn(100, 0);
     
     
-    // TEXT
-        this.controlsText = this.add.text(12, 80, 'controls:', {
+
+    // BASIC CONTROLS TEXT
+        this.skipText = this.add.text(16 , 15, 'skip tutorial:', {
             fontFamily: "'Micro 5'",
-            fontSize: 20,
+            fontSize: 15,
             resolution: 16
         });
 
-        this.moveLeftText = this.add.text(6, 110, 'move left/\nwall grab', {
+        this.moveText = this.add.text(16, 48, 'move left:\nmove right:', {
             fontFamily: "'Micro 5'",
-            fontSize: 11,
+            fontSize: 15,
             resolution: 16
         });
+    
 
-        this.moveRightText = this.add.text(6, 140, 'move right/\nwall grab', {
+    // TITLE TEXT
+        this.titleText = this.add.text(162, 30, 'Wisp', {
             fontFamily: "'Micro 5'",
-            fontSize: 11,
-            resolution: 16
+            fontSize: 64,
+            resolution: 16,
+            fill: '#87CEEB',
+            align: "center"
         });
+        this.titleText.setAlpha(0);
 
-        this.jumpText = this.add.text(4, 164, ' jump/ wall jump', {
-            fontFamily: "'Micro 5'",
-            fontSize: 11,
-            resolution: 16
-        });
-
-        this.resetText = this.add.text(4, 208, 'reset game', {
-            fontFamily: "'Micro 5'",
-            fontSize: 12,
-            resolution: 12
-        });
-
-        this.titleText = this.add.text(165, 65, 'wisp', {
-            fontFamily: "'Micro 5'",
-            fontSize: 40,
-            resolution: 12
-        });
-
-        this.descText = this.add.text(160, 106, 'a game made by\nnathaniel valdenor\n(for cmpm 120)', {
+        this.descText = this.add.text(110, 96, 'a game made by\nnathaniel valdenor and ashley knapp', {
             fontFamily: "'Micro 5'",
             fontSize: 16,
-            resolution: 12
+            resolution: 16,
+            fill: '#87CEEB',
+            align: "center"
         });
+        this.descText.setAlpha(0);
 
-        this.thanksText = this.add.text(1536, 250, 'special thanks to\nkenney for assets', {
-            fontFamily: "'Micro 5'",
-            fontSize: 16,
-            resolution: 12
-        });
-
-        this.endText = this.add.text(1550, 20, 'thank you for playing!', {
-            fontFamily: "'Micro 5'",
-            fontSize: 18,
-            resolution: 12
-        });
     }
 
     update() {
-
+        this.timer++;
     // PLAYER MOVEMENT
         if((cursors.left.isDown || cursors.right.isDown)) {
             if(cursors.left.isDown) {
@@ -295,6 +311,10 @@ class Platformer extends Phaser.Scene {
                 // Only play smoke effect if touching the ground
 
                 if (my.sprite.player.body.blocked.down) {
+                    if (this.timer > 10){
+                        this.sound.play("walkSFX");
+                        this.timer = 0;
+                    }
 
                     my.vfx.walking.start();
 
@@ -324,6 +344,10 @@ class Platformer extends Phaser.Scene {
                 // Only play smoke effect if touching the ground
     
                 if (my.sprite.player.body.blocked.down) {
+                    if (this.timer > 10){
+                        this.sound.play("walkSFX");
+                        this.timer = 0;
+                    }
     
                     my.vfx.walking.start();
     
@@ -356,18 +380,17 @@ class Platformer extends Phaser.Scene {
             my.vfx.walking.stop();
         }
 
-        // PLAYER CHAINS CHECK
-        this.chainCheck();
-
         // PLAYER JUMP
 
-        if((my.sprite.player.body.blocked.down || this.canWallJump) && Phaser.Input.Keyboard.JustDown(this.spaceKey)) {
+        if((my.sprite.player.body.blocked.down || this.canWallJump) && (Phaser.Input.Keyboard.JustDown(this.spaceKey) || Phaser.Input.Keyboard.JustDown(this.upKey))) {
+            this.sound.play("jumpSFX");
 
             if (this.canWallJump && !my.sprite.player.body.blocked.down && (cursors.left.isDown || cursors.right.isDown)) {
                 my.sprite.player.setVelocityX(this.wallJumpDirection * this.WALL_JUMP_VELOCITY_X)
                 this.canWallJump = false;
                 this.physics.world.gravity.y = -700;
                 this.preventImmediateGrab();
+                // this.sound.play("jumpSFX");
                 console.log("wall jumped :3");
             } else if (my.sprite.player.body.blocked.down) {
                 my.sprite.player.setVelocityY(this.JUMP_VELOCITY);
@@ -378,12 +401,28 @@ class Platformer extends Phaser.Scene {
 
         if (this.canWallJump) {
             my.sprite.player.anims.play('slide')
+            if (this.timer > 30){
+                this.sound.play("slideSFX");
+                this.timer = 0;
+            }
         }
+
+        // PLAYER FALL CHECK
+
+        this.playerFallCheck();
 
     // RESTART
 
         if(Phaser.Input.Keyboard.JustDown(this.rKey)) {
+            this.sound.play("restartSFX");
+            this.titleOn = false;
             this.scene.restart();
+        }
+
+    // SKIP TUTORIAL
+        if(Phaser.Input.Keyboard.JustDown(this.sKey)) {
+            this.sound.play("collectSFX");
+            this.scene.start("platformerLv1Scene");
         }
 
     // UPDATE FUNCTIONS (RUNNING EVERY FRAME)
@@ -408,7 +447,7 @@ class Platformer extends Phaser.Scene {
                     my.sprite.player.setAccelerationY(this.BREEZE_STRENGTH * 2);
                     break;
                 case "left":
-                    my.sprite.player.setAccelerationX(-this.BREEZE_STRENGTH * 0.8);
+                    my.sprite.player.setAccelerationX(-this.BREEZE_STRENGTH * 2);
                     break;    
                 case "right":
                     my.sprite.player.setAccelerationX(this.BREEZE_STRENGTH * 2);
@@ -428,12 +467,17 @@ class Platformer extends Phaser.Scene {
             my.sprite.player.setDragX(this.DRAG);
         }
 
-        // SPIKE COLLISION
-        this.spikeCollision();
-
-
         // CAMERA CHECKING
         this.cameraCheck();
+
+        // SIGN CHECKING
+        this.signCheck();
+
+        // if (!this.onSign) {
+        //     this.handleSignsOff()
+        // }
+
+        // this.onSign = false;
     }
 
 
@@ -480,37 +524,15 @@ class Platformer extends Phaser.Scene {
     }
 
 
-    // SPIKE FUNCTIONS
-
-        // SPIKE COLLISION
-    spikeCollision() {
-        const playerTileX = this.spikesLayer.worldToTileX(my.sprite.player.x);
-        const playerTileY = this.spikesLayer.worldToTileY(my.sprite.player.y);
-
-        if (this.spikesLayer.getTileAt(playerTileX, playerTileY)) {
-            this.playerDeath();
-        }
-    }
-
         // PLAYER DEATH
-    playerDeath() {
-        if (this.currentCheckpoint) {
-            my.sprite.player.x = this.currentCheckpoint.x;
-            my.sprite.player.y = this.currentCheckpoint.y;
-        } else {
-            my.sprite.player.x = 120;
-            my.sprite.player.y = 256;
-        }
+    playerFallCheck() {
+        if (my.sprite.player.y >= 380) {
+            this.sound.play("restartSFX");
 
-        my.sprite.player.setVelocityX(0);
-        my.sprite.player.setAcceleration(0);
-    }
-
-
-    // CHECKPOINT FUNCTIONS
-    checkpointActivate(checkpoint) {
-        if (this.currentCheckpoint != checkpoint) {
-            this.currentCheckpoint = checkpoint;
+            my.sprite.player.setVelocityX(0);
+            my.sprite.player.setAcceleration(0);
+            my.sprite.player.x = 15;
+            my.sprite.player.y = 235;
         }
     }
 
@@ -543,31 +565,64 @@ class Platformer extends Phaser.Scene {
         }
     }
 
+    // SIGN FUNCTIONS
+    signActivate(sign) {
+        this.currentSign = sign;
+    }
 
-    // CHAINS FUNCTIONS
-    chainCheck() {
-        this.physics.world.collide(my.sprite.player, this.chainsLayer);
-
-        const playerTileX = this.chainsLayer.worldToTileX(my.sprite.player.x);
-        const playerTileY = this.chainsLayer.worldToTileY(my.sprite.player.y);
-        const playerTile = this.chainsLayer.getTileAt(playerTileX, playerTileY);
-    
-        if (playerTile && playerTile.properties.isClimbable) {
-            my.sprite.player.body.setAllowGravity(false);
-
-            if (this.cursors.up.isDown) {
-                my.sprite.player.body.setVelocityY(-100);
-            } else if (this.cursors.down.isDown) {
-                this.player.VelocityY(100);
-            } else {
-                my.sprite.player.setVelocityY(0);
+    signCheck() {
+        if (this.currentSign) {
+            switch (this.currentSign.data.list.num) {
+                case 1:
+                    this.jumpControlsText.visible = true;
+                    this.Controls2Layer.setVisible(true);
+                    break;
+                case 2:
+                    this.grabControlsText.visible = true;
+                    this.Controls3Layer.setVisible(true);
+                    break;
+                case 3:
+                    this.resetControlsText.visible = true;
+                    this.Controls4Layer.setVisible(true);
             }
-            this.onChain = true;
-            console.log("on chain");
-
-        } else {
-            my.sprite.player.body.setAllowGravity(true);
-            this.onChain = false;
         }
+
+    }
+
+    // handleSignsOff() {
+    //     if (this.currentSign) {
+    //         switch (this.currentSign.data.list.num) {
+    //             case 1:
+    //                 this.jumpControlsText.visible = false;
+    //                 this.Controls2Layer.setVisible(false);
+    //             case 2:
+    //                 this.grabControlsText.visible = false;
+    //                 this.Controls3Layer.setVisible(false);
+    //         }
+    //     }
+    // }
+
+
+    // TITLE FUNCTION
+    titleActivate(button) {
+        this.map.putTileAt(163, button.x, button.y, true, this.buttonsLayer);
+        
+        this.tweens.add({
+            targets: this.titleText,
+            alpha: 1,
+            duration: 1000,
+            ease: 'Power2'
+        });
+
+        // Fade in the description text
+        this.tweens.add({
+            targets: this.descText,
+            alpha: 1,
+            duration: 1000,
+            ease: 'Power2'
+        });
+
+        this.sound.play("collectSFX");
+        this.titleOn = true;
     }
 }

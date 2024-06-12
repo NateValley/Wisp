@@ -27,3 +27,8 @@ AUDIO
 	DEATH
 	RESPAWN
 	END SCREEN
+
+
+Updates:
+Ash - 6/7 4am: 
+	Tutorial level is now displayed. Fans are on. Signs dont show up or do anything yet. Button layer does not show yet and doesnt do anything yet (will probably make it toggle a boolean ON upon collision). End does not work yet (assume it will work similar to checkpoints). Bug: can walk and fall off of the level/offscreen.
